@@ -36,40 +36,11 @@ internal static class Program
         {
             currentGridSpan.CopyTo(oldGridSpan);
 
-            if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
-            {
-                _isRunning = !_isRunning;
-                Raylib.SetWindowTitle($"{(_isRunning ? RunningString : EditString)}");
-            }
-            else if (Raylib.IsKeyPressed(KeyboardKey.KEY_R))
-            {
-                ResetGrid(currentGridSpan);
-                _isRunning = false;
-                Raylib.SetWindowTitle(EditString);
-            }
-            else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_ADD))
-            {
-                _fps += 5;
-                Raylib.SetTargetFPS(_fps);
-            }
-            else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_SUBTRACT))
-            {
-                _fps = Math.Max(_fps - 5, 0);
-                Raylib.SetTargetFPS(_fps);
-            }
+            CheckKeyboardControls(currentGridSpan);
 
             if (!_isRunning)
             {
-                if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
-                {
-                    var mousePos = Raylib.GetMousePosition() / CellSize;
-                    currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _alive;
-                }
-                else if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
-                {
-                    var mousePos = Raylib.GetMousePosition() / CellSize;
-                    currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _dead;
-                }
+                CheckMouseControls(currentGridSpan);
             }
             else
             {
@@ -84,6 +55,45 @@ internal static class Program
         }
 
         Raylib.CloseWindow();
+    }
+
+    private static void CheckMouseControls(Span2D<uint> currentGridSpan)
+    {
+        if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+        {
+            var mousePos = Raylib.GetMousePosition() / CellSize;
+            currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _alive;
+        }
+        else if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
+        {
+            var mousePos = Raylib.GetMousePosition() / CellSize;
+            currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _dead;
+        }
+    }
+
+    private static void CheckKeyboardControls(Span2D<uint> currentGridSpan)
+    {
+        if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
+        {
+            _isRunning = !_isRunning;
+            Raylib.SetWindowTitle($"{(_isRunning ? RunningString : EditString)}");
+        }
+        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_R))
+        {
+            ResetGrid(currentGridSpan);
+            _isRunning = false;
+            Raylib.SetWindowTitle(EditString);
+        }
+        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_ADD))
+        {
+            _fps += 5;
+            Raylib.SetTargetFPS(_fps);
+        }
+        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_SUBTRACT))
+        {
+            _fps = Math.Max(_fps - 5, 0);
+            Raylib.SetTargetFPS(_fps);
+        }
     }
 
     private static void Run(ReadOnlySpan2D<uint> oldGrid, Span2D<uint> currentGrid)
@@ -109,24 +119,38 @@ internal static class Program
 
     private static int GetNumberOfAliveNeighbours(ReadOnlySpan2D<uint> oldGrid, int x, int y)
     {
-        ReadOnlySpan<int> xValues = stackalloc int[] { (x + GridSize - 1) % GridSize, x, (x + 1) % GridSize };
-        ReadOnlySpan<int> yValues = stackalloc int[] { (y + GridSize - 1) % GridSize, y, (y + 1) % GridSize };
-
         int aliveNeighbours = 0;
-        for (int i = 0; i < yValues.Length; i++)
-        {
-            for (int j = 0; j < xValues.Length; j++)
-            {
-                if (i == 1 && j == 1)
-                {
-                    continue;
-                }
 
-                if (oldGrid[xValues[j], yValues[i]] == _alive)
+        if (x is 0 or GridSize - 1 || y is 0 or GridSize - 1)
+        {
+            ReadOnlySpan<int> xValues = stackalloc int[] { (x + GridSize - 1) % GridSize, x, (x + 1) % GridSize };
+            ReadOnlySpan<int> yValues = stackalloc int[] { (y + GridSize - 1) % GridSize, y, (y + 1) % GridSize };
+
+            for (int i = 0; i < yValues.Length; i++)
+            {
+                for (int j = 0; j < xValues.Length; j++)
+                {
+                    if (oldGrid[xValues[j], yValues[i]] == _alive)
+                    {
+                        aliveNeighbours++;
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (uint cell in oldGrid.Slice(x - 1, y - 1, 3, 3))
+            {
+                if (cell == _alive)
                 {
                     aliveNeighbours++;
                 }
             }
+        }
+
+        if (oldGrid[x, y] == _alive)
+        {
+            aliveNeighbours--;
         }
 
         return aliveNeighbours;
