@@ -86,6 +86,7 @@ internal static class Program
                     case 3:
                         currentGrid[x, y] = _alive;
                         break;
+
                     default:
                         currentGrid[x, y] = _dead;
                         break;
@@ -96,21 +97,20 @@ internal static class Program
 
     private static int GetNumberOfAliveNeighbours(ReadOnlySpan2D<uint> oldGrid, int x, int y)
     {
-        int aliveNeighbours = 0;
+        ReadOnlySpan<int> xValues = stackalloc int[] { (x + GridSize - 1) % GridSize, x, (x + 1) % GridSize };
+        ReadOnlySpan<int> yValues = stackalloc int[] { (y + GridSize - 1) % GridSize, y, (y + 1) % GridSize };
 
-        for (int i = -1; i <= 1; i++)
+        int aliveNeighbours = 0;
+        for (int i = 0; i < yValues.Length; i++)
         {
-            for (int j = -1; j <= 1; j++)
+            for (int j = 0; j < xValues.Length; j++)
             {
-                if (i == 0 && j == 0)
+                if (i == 1 && j == 1)
                 {
                     continue;
                 }
 
-                int neighbourX = (x + i + GridSize) % GridSize;
-                int neighbourY = (y + j + GridSize) % GridSize;
-
-                if (oldGrid[neighbourX, neighbourY] == _alive)
+                if (oldGrid[xValues[j], yValues[i]] == _alive)
                 {
                     aliveNeighbours++;
                 }
