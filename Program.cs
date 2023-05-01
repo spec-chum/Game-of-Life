@@ -1,5 +1,5 @@
-﻿using Raylib_cs;
-using System.Numerics;
+﻿using CommunityToolkit.HighPerformance;
+using Raylib_cs;
 
 namespace GameOfLife;
 
@@ -9,8 +9,11 @@ internal static class Program
     private const int Height = 800;
     private const int GridSize = 50;
     private const int CellSize = Width / GridSize;
+    private const string TitleString = "Game of Life - ";
+    private const string RunningString = TitleString + "Running";
+    private const string EditString = TitleString + "Edit";
 
-    private static uint[,] _oldGrid = new uint[GridSize, GridSize];
+    private static readonly uint[,] _oldGrid = new uint[GridSize, GridSize];
     private static readonly uint[,] _currentGrid = new uint[GridSize, GridSize];
     private static readonly uint _alive = (uint)Raylib.ColorToInt(Color.BLUE);
     private static readonly uint _dead = (uint)Raylib.ColorToInt(Color.BLACK);
@@ -20,86 +23,78 @@ internal static class Program
 
     private static void Main()
     {
-        Raylib.InitWindow(Width, Height, "Game of Life - Edit");
+        Raylib.InitWindow(Width, Height, EditString);
         Raylib.SetTargetFPS(10);
 
-        ResetGrid();
+        Span2D<uint> oldGridSpan = _oldGrid;
+        Span2D<uint> currentGridSpan = _currentGrid;
 
-        Vector2 mousePos;
+        ResetGrid(currentGridSpan);
+
         while (!Raylib.WindowShouldClose())
         {
-            _oldGrid = (uint[,])_currentGrid.Clone();
+            currentGridSpan.CopyTo(oldGridSpan);
 
             if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
             {
                 _isRunning = !_isRunning;
-                Raylib.SetWindowTitle($"Game of Life - {(_isRunning ? "Running" : "Edit")}");
+                Raylib.SetWindowTitle($"{(_isRunning ? RunningString : EditString)}");
             }
             else if (Raylib.IsKeyPressed(KeyboardKey.KEY_R))
             {
-                ResetGrid();
+                ResetGrid(currentGridSpan);
                 _isRunning = false;
-                Raylib.SetWindowTitle("Game of Life - Edit");
+                Raylib.SetWindowTitle(EditString);
             }
 
             if (!_isRunning)
             {
                 if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
                 {
-                    mousePos = Raylib.GetMousePosition() / CellSize;
-                    _currentGrid[(int)mousePos.X, (int)mousePos.Y] = _alive;
+                    var mousePos = Raylib.GetMousePosition() / CellSize;
+                    currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _alive;
                 }
-
-                if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
+                else if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
                 {
-                    mousePos = Raylib.GetMousePosition() / CellSize;
-                    _currentGrid[(int)mousePos.X, (int)mousePos.Y] = _dead;
+                    var mousePos = Raylib.GetMousePosition() / CellSize;
+                    currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _dead;
                 }
             }
             else
             {
-                Run();
+                Run(oldGridSpan, currentGridSpan);
             }
 
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Raylib.GetColor(_dead));
-            DrawGrid();
+            DrawGrid(currentGridSpan);
             Raylib.EndDrawing();
         }
 
         Raylib.CloseWindow();
     }
 
-    private static void Run()
+    private static void Run(ReadOnlySpan2D<uint> oldGrid, Span2D<uint> currentGrid)
     {
         for (int y = 0; y < GridSize; y++)
         {
             for (int x = 0; x < GridSize; x++)
             {
-                int aliveNeighbours = GetNumberOfAliveNeighbours(x, y);
-                if (_oldGrid[x, y] == _alive)
+                switch (GetNumberOfAliveNeighbours(oldGrid, x, y))
                 {
-                    if (aliveNeighbours is 2 or 3)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        _currentGrid[x, y] = _dead;
-                    }
-                }
-                else
-                {
-                    if (aliveNeighbours == 3)
-                    {
-                        _currentGrid[x, y] = _alive;
-                    }
+                    case 2 when oldGrid[x, y] == _alive:
+                    case 3:
+                        currentGrid[x, y] = _alive;
+                        break;
+                    default:
+                        currentGrid[x, y] = _dead;
+                        break;
                 }
             }
         }
     }
 
-    private static int GetNumberOfAliveNeighbours(int x, int y)
+    private static int GetNumberOfAliveNeighbours(ReadOnlySpan2D<uint> oldGrid, int x, int y)
     {
         int aliveNeighbours = 0;
 
@@ -115,7 +110,7 @@ internal static class Program
                 int neighbourX = (x + i + GridSize) % GridSize;
                 int neighbourY = (y + j + GridSize) % GridSize;
 
-                if (_oldGrid[neighbourX, neighbourY] == _alive)
+                if (oldGrid[neighbourX, neighbourY] == _alive)
                 {
                     aliveNeighbours++;
                 }
@@ -125,15 +120,9 @@ internal static class Program
         return aliveNeighbours;
     }
 
-    private static void ResetGrid()
+    private static void ResetGrid(Span2D<uint> currentGrid)
     {
-        for (int y = 0; y < GridSize; y++)
-        {
-            for (int x = 0; x < GridSize; x++)
-            {
-                _currentGrid[x, y] = _dead;
-            }
-        }
+        currentGrid.Fill(_dead);
     }
 
     private static void DrawGridLines()
@@ -147,20 +136,20 @@ internal static class Program
         }
     }
 
-    private static void DrawGridCells()
+    private static void DrawGridCells(ReadOnlySpan2D<uint> currentGrid)
     {
         for (int y = 0; y < GridSize; y++)
         {
             for (int x = 0; x < GridSize; x++)
             {
-                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(_currentGrid[x, y]));
+                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(currentGrid[x, y]));
             }
         }
     }
 
-    private static void DrawGrid()
+    private static void DrawGrid(ReadOnlySpan2D<uint> currentGrid)
     {
-        DrawGridCells();
+        DrawGridCells(currentGrid);
         DrawGridLines();
     }
 }
