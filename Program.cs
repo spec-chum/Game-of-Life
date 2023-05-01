@@ -20,11 +20,12 @@ internal static class Program
     private static readonly Color _gridColor = Color.DARKGRAY;
 
     private static bool _isRunning;
+    private static int _fps = 10;
 
     private static void Main()
     {
         Raylib.InitWindow(Width, Height, EditString);
-        Raylib.SetTargetFPS(10);
+        Raylib.SetTargetFPS(_fps);
 
         Span2D<uint> oldGridSpan = _oldGrid;
         Span2D<uint> currentGridSpan = _currentGrid;
@@ -45,6 +46,16 @@ internal static class Program
                 ResetGrid(currentGridSpan);
                 _isRunning = false;
                 Raylib.SetWindowTitle(EditString);
+            }
+            else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_ADD))
+            {
+                _fps += 5;
+                Raylib.SetTargetFPS(_fps);
+            }
+            else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_SUBTRACT))
+            {
+                _fps = Math.Max(_fps - 5, 0);
+                Raylib.SetTargetFPS(_fps);
             }
 
             if (!_isRunning)
@@ -68,6 +79,7 @@ internal static class Program
             Raylib.BeginDrawing();
             Raylib.ClearBackground(Raylib.GetColor(_dead));
             DrawGrid(currentGridSpan);
+            Raylib.DrawText($"Speed: {_fps}", 0, 0, 24, Color.DARKPURPLE);
             Raylib.EndDrawing();
         }
 
