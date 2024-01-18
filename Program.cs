@@ -1,5 +1,6 @@
-﻿using CommunityToolkit.HighPerformance;
-using Raylib_cs;
+﻿using Raylib_cs;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace GameOfLife;
 
@@ -13,8 +14,6 @@ internal static class Program
     private const string RunningString = TitleString + "Running";
     private const string EditString = TitleString + "Edit";
 
-    private static readonly uint[,] _oldGrid = new uint[GridSize, GridSize];
-    private static readonly uint[,] _currentGrid = new uint[GridSize, GridSize];
     private static readonly uint _alive = (uint)Raylib.ColorToInt(Color.BLUE);
     private static readonly uint _dead = (uint)Raylib.ColorToInt(Color.BLACK);
     private static readonly Color _gridColor = Color.DARKGRAY;
@@ -27,8 +26,8 @@ internal static class Program
         Raylib.InitWindow(Width, Height, EditString);
         Raylib.SetTargetFPS(_fps);
 
-        Span2D<uint> oldGridSpan = _oldGrid;
-        Span2D<uint> currentGridSpan = _currentGrid;
+        Span<uint> oldGridSpan = stackalloc uint[GridSize * GridSize];
+        Span<uint> currentGridSpan = stackalloc uint[GridSize * GridSize];
 
         ResetGrid(currentGridSpan);
 
@@ -57,21 +56,33 @@ internal static class Program
         Raylib.CloseWindow();
     }
 
-    private static void CheckMouseControls(Span2D<uint> currentGridSpan)
+    static ref uint GetCellRef(Span<uint> grid, int x, int y)
+    {
+        ref uint gridRef = ref MemoryMarshal.GetReference(grid);
+        return ref Unsafe.Add(ref gridRef, (uint)((y * GridSize) + x));
+    }
+
+    private static uint GetCell(ReadOnlySpan<uint> grid, int x, int y)
+    {
+        ref uint gridRef = ref MemoryMarshal.GetReference(grid);
+        return Unsafe.Add(ref gridRef, (uint)((y * GridSize) + x));
+    }
+
+    private static void CheckMouseControls(Span<uint> currentGridSpan)
     {
         if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
         {
             var mousePos = Raylib.GetMousePosition() / CellSize;
-            currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _alive;
+            GetCellRef(currentGridSpan, (int)mousePos.X, (int)mousePos.Y) = _alive;
         }
         else if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
         {
             var mousePos = Raylib.GetMousePosition() / CellSize;
-            currentGridSpan[(int)mousePos.X, (int)mousePos.Y] = _dead;
+            GetCellRef(currentGridSpan, (int)mousePos.X, (int)mousePos.Y) = _dead;
         }
     }
 
-    private static void CheckKeyboardControls(Span2D<uint> currentGridSpan)
+    private static void CheckKeyboardControls(Span<uint> currentGridSpan)
     {
         if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
         {
@@ -91,12 +102,12 @@ internal static class Program
         }
         else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_SUBTRACT))
         {
-            _fps = Math.Max(_fps - 5, 0);
+            _fps = Math.Max(_fps - 5, 5);
             Raylib.SetTargetFPS(_fps);
         }
     }
 
-    private static void Run(ReadOnlySpan2D<uint> oldGrid, Span2D<uint> currentGrid)
+    private static void Run(ReadOnlySpan<uint> oldGrid, Span<uint> currentGrid)
     {
         for (int y = 0; y < GridSize; y++)
         {
@@ -104,50 +115,53 @@ internal static class Program
             {
                 switch (GetNumberOfAliveNeighbours(oldGrid, x, y))
                 {
-                    case 2 when oldGrid[x, y] == _alive:
+                    case 2 when GetCell(oldGrid, x, y) == _alive:
                     case 3:
-                        currentGrid[x, y] = _alive;
+                        GetCellRef(currentGrid, x, y) = _alive;
                         break;
                     default:
-                        currentGrid[x, y] = _dead;
+                        GetCellRef(currentGrid, x, y) = _dead;
                         break;
                 }
             }
         }
     }
 
-    private static int GetNumberOfAliveNeighbours(ReadOnlySpan2D<uint> oldGrid, int x, int y)
+    private static int GetNumberOfAliveNeighbours(ReadOnlySpan<uint> oldGrid, int x, int y)
     {
-        int aliveNeighbours = 0;
+        Span<int> xValues = stackalloc int[3];
+        Span<int> yValues = stackalloc int[3];
 
         if (x is 0 or GridSize - 1 || y is 0 or GridSize - 1)
         {
-            ReadOnlySpan<int> xValues = [(x + GridSize - 1) % GridSize, x, (x + 1) % GridSize];
-            ReadOnlySpan<int> yValues = [(y + GridSize - 1) % GridSize, y, (y + 1) % GridSize];
-
-            for (int i = 0; i < yValues.Length; i++)
+            for (int i = 0; i < 3; i++)
             {
-                for (int j = 0; j < xValues.Length; j++)
-                {
-                    if (oldGrid[xValues[j], yValues[i]] == _alive)
-                    {
-                        aliveNeighbours++;
-                    }
-                }
+                xValues[i] = (x + i + GridSize - 1) % GridSize;
+                yValues[i] = (y + i + GridSize - 1) % GridSize;
             }
         }
         else
         {
-            foreach (uint cell in oldGrid.Slice(x - 1, y - 1, 3, 3))
+            for (int i = 0; i < 3; i++)
             {
-                if (cell == _alive)
+                xValues[i] = x + i - 1;
+                yValues[i] = y + i - 1;
+            }
+        }
+
+        int aliveNeighbours = 0;
+        for (int i = 0; i < yValues.Length; i++)
+        {
+            for (int j = 0; j < xValues.Length; j++)
+            {
+                if (GetCell(oldGrid, xValues[j], yValues[i]) == _alive)
                 {
                     aliveNeighbours++;
                 }
             }
         }
 
-        if (oldGrid[x, y] == _alive)
+        if (GetCell(oldGrid, x, y) == _alive)
         {
             aliveNeighbours--;
         }
@@ -155,7 +169,7 @@ internal static class Program
         return aliveNeighbours;
     }
 
-    private static void ResetGrid(Span2D<uint> currentGrid)
+    private static void ResetGrid(Span<uint> currentGrid)
     {
         currentGrid.Fill(_dead);
     }
@@ -171,18 +185,18 @@ internal static class Program
         }
     }
 
-    private static void DrawGridCells(ReadOnlySpan2D<uint> currentGrid)
+    private static void DrawGridCells(ReadOnlySpan<uint> currentGrid)
     {
         for (int y = 0; y < GridSize; y++)
         {
             for (int x = 0; x < GridSize; x++)
             {
-                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(currentGrid[x, y]));
+                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(GetCell(currentGrid, x, y)));
             }
         }
     }
 
-    private static void DrawGrid(ReadOnlySpan2D<uint> currentGrid)
+    private static void DrawGrid(ReadOnlySpan<uint> currentGrid)
     {
         DrawGridCells(currentGrid);
         DrawGridLines();
