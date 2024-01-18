@@ -38,13 +38,13 @@ internal static class Program
 
             CheckKeyboardControls(currentGridSpan);
 
-            if (!_isRunning)
+            if (_isRunning)
             {
-                CheckMouseControls(currentGridSpan);
+                Run(oldGridSpan, currentGridSpan);
             }
             else
             {
-                Run(oldGridSpan, currentGridSpan);
+                CheckMouseControls(currentGridSpan);
             }
 
             Raylib.BeginDrawing();
@@ -108,7 +108,6 @@ internal static class Program
                     case 3:
                         currentGrid[x, y] = _alive;
                         break;
-
                     default:
                         currentGrid[x, y] = _dead;
                         break;
@@ -123,8 +122,8 @@ internal static class Program
 
         if (x is 0 or GridSize - 1 || y is 0 or GridSize - 1)
         {
-            ReadOnlySpan<int> xValues = stackalloc int[] { (x + GridSize - 1) % GridSize, x, (x + 1) % GridSize };
-            ReadOnlySpan<int> yValues = stackalloc int[] { (y + GridSize - 1) % GridSize, y, (y + 1) % GridSize };
+            ReadOnlySpan<int> xValues = [(x + GridSize - 1) % GridSize, x, (x + 1) % GridSize];
+            ReadOnlySpan<int> yValues = [(y + GridSize - 1) % GridSize, y, (y + 1) % GridSize];
 
             for (int i = 0; i < yValues.Length; i++)
             {
