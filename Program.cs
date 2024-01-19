@@ -6,9 +6,9 @@ namespace GameOfLife;
 
 internal static class Program
 {
-    private const int Width = 800;
-    private const int Height = 800;
-    private const int GridSize = 50;
+    private const int Width = 960;
+    private const int Height = 960;
+    private const int GridSize = 64;
     private const int CellSize = Width / GridSize;
     private const string TitleString = "Game of Life - ";
     private const string RunningString = TitleString + "Running";
@@ -129,41 +129,21 @@ internal static class Program
 
     private static int GetNumberOfAliveNeighbours(ReadOnlySpan<uint> oldGrid, int x, int y)
     {
-        Span<int> xValues = stackalloc int[3];
-        Span<int> yValues = stackalloc int[3];
-
-        if (x is 0 or GridSize - 1 || y is 0 or GridSize - 1)
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                xValues[i] = (x + i + GridSize - 1) % GridSize;
-                yValues[i] = (y + i + GridSize - 1) % GridSize;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < 3; i++)
-            {
-                xValues[i] = x + i - 1;
-                yValues[i] = y + i - 1;
-            }
-        }
-
         int aliveNeighbours = 0;
-        for (int i = 0; i < yValues.Length; i++)
+        for (int i = -1; i <= 1; i++)
         {
-            for (int j = 0; j < xValues.Length; j++)
+            for (int j = -1; j <= 1; j++)
             {
-                if (GetCell(oldGrid, xValues[j], yValues[i]) == _alive)
+                if (i == 0 && j == 0)
+                {
+                    continue;
+                }
+
+                if (GetCell(oldGrid, (x + i + GridSize) % GridSize, (y + j + GridSize) % GridSize) == _alive)
                 {
                     aliveNeighbours++;
                 }
             }
-        }
-
-        if (GetCell(oldGrid, x, y) == _alive)
-        {
-            aliveNeighbours--;
         }
 
         return aliveNeighbours;
