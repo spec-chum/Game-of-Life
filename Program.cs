@@ -121,7 +121,7 @@ internal static class Program
 
                 if (game.isRunning)
                 {
-                    switch (GetNumberOfAliveNeighbours(game, x, y))
+                    switch (GetNumberOfAliveNeighbours(game.oldGrid, x, y))
                     {
                         case 2 when GetCellValue(game.oldGrid, x, y) == CellAlive:
                         case 3:
@@ -138,7 +138,7 @@ internal static class Program
         }
     }
 
-    private static int GetNumberOfAliveNeighbours(Game game, int x, int y)
+    private static int GetNumberOfAliveNeighbours(uint[] grid, int x, int y)
     {
         int aliveNeighbours = 0;
         for (int i = -1; i <= 1; i++)
@@ -150,7 +150,7 @@ internal static class Program
                     continue;
                 }
 
-                if (GetCellValue(game.oldGrid, (x + i + GridSize) % GridSize, (y + j + GridSize) % GridSize) == CellAlive)
+                if (GetCellValue(grid, (x + i + GridSize) % GridSize, (y + j + GridSize) % GridSize) == CellAlive)
                 {
                     aliveNeighbours++;
                 }
