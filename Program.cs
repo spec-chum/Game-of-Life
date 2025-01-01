@@ -60,12 +60,14 @@ internal static class Program
         Raylib.CloseWindow();
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     static ref uint GetCellRef(uint[] grid, int x, int y)
     {
         ref uint gridRef = ref MemoryMarshal.GetArrayDataReference(grid);
         return ref Unsafe.Add(ref gridRef, (uint)((y * GridSize) + x));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static uint GetCellValue(uint[] grid, int x, int y)
     {
         ref uint gridRef = ref MemoryMarshal.GetArrayDataReference(grid);
