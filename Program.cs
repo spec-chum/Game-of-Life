@@ -31,7 +31,7 @@ internal static class Program
 
     private static void Main()
     {
-        Game game = new Game
+        var game = new Game
         {
             isRunning = false,
             fps = 10
@@ -123,16 +123,12 @@ internal static class Program
 
                 if (game.isRunning)
                 {
-                    switch (GetNumberOfAliveNeighbours(game.oldGrid, x, y))
+                    currentCellColour = GetNumberOfAliveNeighbours(game.oldGrid, x, y) switch
                     {
-                        case 2 when GetCellValue(game.oldGrid, x, y) == CellAlive:
-                        case 3:
-                            currentCellColour = CellAlive;
-                            break;
-                        default:
-                            currentCellColour = CellDead;
-                            break;
-                    }
+                        2 when GetCellValue(game.oldGrid, x, y) == CellAlive => CellAlive,
+                        3 => CellAlive,
+                        _ => CellDead
+                    };
                 }
 
                 Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(currentCellColour));
@@ -169,7 +165,7 @@ internal static class Program
 
     private static void CopyCurrentGrid(Game game)
     {
-        Array.Copy(game.currentGrid, game.oldGrid, game.currentGrid.Length);
+        game.oldGrid = [.. game.currentGrid];
     }
 
     private static void DrawGridLines()
