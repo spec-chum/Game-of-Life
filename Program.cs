@@ -24,10 +24,10 @@ internal static class Program
     private const string EditString = TitleString + "Edit";
     private const string SpeedString = "Speed: ";
 
-    private static readonly uint CellAlive = (uint)Raylib.ColorToInt(Color.BLUE);
-    private static readonly uint CellDead = (uint)Raylib.ColorToInt(Color.BLACK);
-    private static readonly Color GridColor = Color.DARKGRAY;
-    private static readonly Color TextColor = Color.DARKGREEN;
+    private static readonly uint CellAlive = (uint)Raylib.ColorToInt(Color.Blue);
+    private static readonly uint CellDead = (uint)Raylib.ColorToInt(Color.Black);
+    private static readonly Color GridColour = Color.DarkGray;
+    private static readonly Color TextColour = Color.DarkGreen;
 
     private static void Main()
     {
@@ -53,7 +53,7 @@ internal static class Program
             Raylib.ClearBackground(Raylib.GetColor(CellDead));
             UpdateGrid(game);
             DrawGridLines();
-            Raylib.DrawText(SpeedString + game.fps, 0, 0, 24, TextColor);
+            Raylib.DrawText(SpeedString + game.fps, 0, 0, 24, TextColour);
             Raylib.EndDrawing();
         }
 
@@ -74,12 +74,12 @@ internal static class Program
 
     private static void CheckMouseControls(Game game)
     {
-        if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_LEFT))
+        if (Raylib.IsMouseButtonPressed(MouseButton.Left))
         {
             Vector2 mousePos = Raylib.GetMousePosition() / CellSize;
             GetCellRef(game.currentGrid, (int)mousePos.X, (int)mousePos.Y) = CellAlive;
         }
-        else if (Raylib.IsMouseButtonPressed(MouseButton.MOUSE_BUTTON_RIGHT))
+        else if (Raylib.IsMouseButtonPressed(MouseButton.Right))
         {
             Vector2 mousePos = Raylib.GetMousePosition() / CellSize;
             GetCellRef(game.currentGrid, (int)mousePos.X, (int)mousePos.Y) = CellDead;
@@ -88,23 +88,23 @@ internal static class Program
 
     private static void CheckKeyboardControls(Game game)
     {
-        if (Raylib.IsKeyPressed(KeyboardKey.KEY_SPACE))
+        if (Raylib.IsKeyPressed(KeyboardKey.Space))
         {
             game.isRunning = !game.isRunning;
-            Raylib.SetWindowTitle($"{(game.isRunning ? RunningString : EditString)}");
+            Raylib.SetWindowTitle(game.isRunning ? RunningString : EditString);
         }
-        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_R))
+        else if (Raylib.IsKeyPressed(KeyboardKey.R))
         {
             ResetGrid(game);
             game.isRunning = false;
             Raylib.SetWindowTitle(EditString);
         }
-        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_ADD))
+        else if (Raylib.IsKeyPressed(KeyboardKey.KpAdd))
         {
             game.fps += 5;
             Raylib.SetTargetFPS(game.fps);
         }
-        else if (Raylib.IsKeyPressed(KeyboardKey.KEY_KP_SUBTRACT))
+        else if (Raylib.IsKeyPressed(KeyboardKey.KpSubtract))
         {
             game.fps = Math.Max(game.fps - 5, 5);
             Raylib.SetTargetFPS(game.fps);
@@ -117,7 +117,7 @@ internal static class Program
         {
             for (int x = 0; x < GridSize; x++)
             {
-                ref uint currentCellColor = ref GetCellRef(game.currentGrid, x, y);
+                ref uint currentCellColour = ref GetCellRef(game.currentGrid, x, y);
 
                 if (game.isRunning)
                 {
@@ -125,15 +125,15 @@ internal static class Program
                     {
                         case 2 when GetCellValue(game.oldGrid, x, y) == CellAlive:
                         case 3:
-                            currentCellColor = CellAlive;
+                            currentCellColour = CellAlive;
                             break;
                         default:
-                            currentCellColor = CellDead;
+                            currentCellColour = CellDead;
                             break;
                     }
                 }
 
-                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(currentCellColor));
+                Raylib.DrawRectangle(x * CellSize, y * CellSize, CellSize, CellSize, Raylib.GetColor(currentCellColour));
             }
         }
     }
@@ -172,12 +172,12 @@ internal static class Program
 
     private static void DrawGridLines()
     {
-        Raylib.DrawRectangleLines(0, 0, Width, Height, GridColor);
+        Raylib.DrawRectangleLines(0, 0, Width, Height, GridColour);
 
         for (int cell = 0; cell < GridSize; cell++)
         {
-            Raylib.DrawLine(0, cell * CellSize, Width, cell * CellSize, GridColor);
-            Raylib.DrawLine(cell * CellSize, 0, cell * CellSize, Height, GridColor);
+            Raylib.DrawLine(0, cell * CellSize, Width, cell * CellSize, GridColour);
+            Raylib.DrawLine(cell * CellSize, 0, cell * CellSize, Height, GridColour);
         }
     }
 }
